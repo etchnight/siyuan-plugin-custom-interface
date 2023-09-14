@@ -4,7 +4,7 @@ import { BlockId } from "../../siyuanPlugin-common/types/siyuan-api";
 export async function renderBreadcrumb(id: BlockId) {
   const element = document.createElement("div");
   element.className = "protyle-breadcrumb";
-  element.innerHTML = `'<div class="protyle-breadcrumb__bar"></div>'
+  element.innerHTML = `<div class="protyle-breadcrumb__bar"></div>
 <span class="protyle-breadcrumb__space"></span>
 `;
   let thisElement = element.firstElementChild as HTMLElement;
@@ -25,6 +25,7 @@ export async function renderBreadcrumb(id: BlockId) {
     }"><use xlink:href="#${getIconByType(item.type, item.subType)}"></use></svg>
 </span>`;
     } else {
+      //*跳过最后一个面包屑
       html += `<span class="protyle-breadcrumb__item" data-node-id="${
         item.id
       }"${
@@ -32,19 +33,20 @@ export async function renderBreadcrumb(id: BlockId) {
           ? ' style="max-width:none"'
           : ""
       }>
-    <svg class="popover__block" data-id="${
-      item.id
-    }"><use xlink:href="#${getIconByType(item.type, item.subType)}"></use></svg>
-    <span class="protyle-breadcrumb__text" title="${item.name}">${
-        item.name
+        <svg class="popover__block" data-id="${item.id}">
+          <use xlink:href="#${getIconByType(item.type, item.subType)}"></use>
+        </svg>
+        <span class="protyle-breadcrumb__text" title="${item.name}">${
+        index !== response.data.length - 1 ? item.name : ""
       }</span>
-</span>`;
+      </span>`;
     }
     if (index !== response.data.length - 1) {
       html +=
         '<svg class="protyle-breadcrumb__arrow"><use xlink:href="#iconRight"></use></svg>';
     }
   });
+  //console.log(html);
   thisElement.classList.remove("protyle-breadcrumb__bar--nowrap");
   thisElement.innerHTML = html;
   const itemElements = Array.from(

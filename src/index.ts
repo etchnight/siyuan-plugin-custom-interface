@@ -16,8 +16,8 @@ export default class PluginBackLinkInDoc extends Plugin {
     this.eventBus.off("loaded-protyle-dynamic", this.addEleThis);
   }
   private async addEle({ detail }: any) {
-    this.eventBus.off("loaded-protyle", this.addEleThis);
-    this.eventBus.off("loaded-protyle-dynamic", this.addEleThis);
+    //this.eventBus.off("loaded-protyle", this.addEleThis);
+    //this.eventBus.off("loaded-protyle-dynamic", this.addEleThis);
     //console.log(detail);
     const parentEle = (detail.wysiwyg?.element ||
       detail.protyle?.wysiwyg.element) as HTMLElement;
@@ -43,8 +43,8 @@ export default class PluginBackLinkInDoc extends Plugin {
       PluginBackLinkInDoc.insertAfter(superBlock, blockEle);
     });
     //console.log(detail.wysiwyg.element);
-    this.eventBus.on("loaded-protyle", this.addEleThis);
-    this.eventBus.on("loaded-protyle-dynamic", this.addEleThis);
+    //this.eventBus.on("loaded-protyle", this.addEleThis);
+    //this.eventBus.on("loaded-protyle-dynamic", this.addEleThis);
   }
   /**
    * 在targetElement之后插入 新节点newElement
@@ -52,7 +52,10 @@ export default class PluginBackLinkInDoc extends Plugin {
    * @param targetElement
    */
   static insertAfter(newElement: Element, targetElement: Element) {
-    var parent = targetElement.parentNode;
+    let parent = targetElement.parentNode;
+    if (!parent) {
+      return;
+    }
     if (parent.lastChild == targetElement) {
       parent.appendChild(newElement);
     } else {
@@ -60,7 +63,9 @@ export default class PluginBackLinkInDoc extends Plugin {
     }
   }
   private async nodeSuperBlock(id: BlockId) {
-    const data = await getRefIDs(id);
+    if (!id) {
+      return;
+    }
     let superBlock = document.createElement("div");
 
     //*样式
@@ -89,6 +94,7 @@ export default class PluginBackLinkInDoc extends Plugin {
     parent.appendChild(superBlock);
 
     //*异步获取反向引用块
+    const data = await getRefIDs(id);
     const handle = async (id: BlockId) => {
       const refBlock = await this.nodeDivBlock(id);
       return refBlock;
@@ -98,7 +104,9 @@ export default class PluginBackLinkInDoc extends Plugin {
     });
     const eleList = await Promise.all(queue);
     eleList.forEach((item) => {
-      superBlock.append(item);
+      if (item) {
+        superBlock.append(item);
+      }
     });
 
     //*进入可视区域后更新
@@ -110,20 +118,19 @@ export default class PluginBackLinkInDoc extends Plugin {
       getDoc(id),
       renderBreadcrumb(id),
     ]);
+    if (!ref.content) {
+      return;
+    }
     let divEle = document.createElement("div");
-    //*禁止编辑
-    let html = ref.content.replace(
-      /contenteditable=[\",\']true[\",\']/g,
-      'contenteditable="false"'
-    );
-    divEle.innerHTML = html;
+    divEle.innerHTML = ref.content;
+    divEle.setAttribute("contenteditable", "false"); //*禁止编辑
     divEle.onclick = (event) => {
       event.stopPropagation();
       openTab({
         app: this.app,
         doc: {
           id: id, //divEle.getAttribute("data-node-id"), // 块 id
-          action: ["cb-get-all", "cb-get-focus", "cb-get-hl"], // cb-get-all：获取所有内容；cb-get-focus：打开后光标定位在 id 所在的块；cb-get-hl: 打开后 id 块高亮
+          action: ["cb-get-all", "cb-get-hl"], // cb-get-all：获取所有内容；cb-get-focus：打开后光标定位在 id 所在的块；cb-get-hl: 打开后 id 块高亮
         },
         //keepCursor: false,
       });
@@ -147,7 +154,9 @@ export default class PluginBackLinkInDoc extends Plugin {
       let superBlock = item.target;
       const id = superBlock.getAttribute("target-id");
       const newEle = await this.nodeSuperBlock(id);
-      superBlock.parentNode.insertBefore(newEle, superBlock);
+      if (newEle) {
+        superBlock.parentNode.insertBefore(newEle, superBlock);
+      }
       superBlock.remove();
     });
   });
