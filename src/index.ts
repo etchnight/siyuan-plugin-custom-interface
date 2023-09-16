@@ -1,24 +1,30 @@
 import { Plugin, openTab } from "siyuan";
 import { getDoc, getRefIDs } from "../../siyuanPlugin-common/siyuan-api";
-import { Block, BlockId } from "../../siyuanPlugin-common/types/siyuan-api";
+import { BlockId } from "../../siyuanPlugin-common/types/siyuan-api";
 import { renderBreadcrumb } from "./breadcrumb";
 export default class PluginBackLinkInDoc extends Plugin {
-  private addEleThis = this.addEle.bind(this);
+  private backLinkInDocThis = this.backLinkInDoc.bind(this);
+  private isAdding = false; //是否在进行添加
   async onload() {}
 
   onLayoutReady() {
-    this.eventBus.on("loaded-protyle", this.addEleThis);
-    this.eventBus.on("loaded-protyle-dynamic", this.addEleThis);
+    this.eventBus.on("loaded-protyle", this.backLinkInDocThis);
+    this.eventBus.on("loaded-protyle-dynamic", this.backLinkInDocThis);
   }
 
   onunload() {
-    this.eventBus.off("loaded-protyle", this.addEleThis);
-    this.eventBus.off("loaded-protyle-dynamic", this.addEleThis);
+    this.eventBus.off("loaded-protyle", this.backLinkInDocThis);
+    this.eventBus.off("loaded-protyle-dynamic", this.backLinkInDocThis);
   }
-  private async addEle({ detail }: any) {
+  private async backLinkInDoc({ detail }: any) {
     //this.eventBus.off("loaded-protyle", this.addEleThis);
     //this.eventBus.off("loaded-protyle-dynamic", this.addEleThis);
     //console.log(detail);
+    if (this.isAdding) {
+      return;
+    } else {
+      this.isAdding = true;
+    }
     const parentEle = (detail.wysiwyg?.element ||
       detail.protyle?.wysiwyg.element) as HTMLElement;
     const blockEleList = parentEle.querySelectorAll("[data-node-id]");
@@ -37,14 +43,13 @@ export default class PluginBackLinkInDoc extends Plugin {
       if (blockEle.parentElement.querySelector(`[target-id='${blockId}']`)) {
         return;
       }
-
-      //*获取反向引用块
       let superBlock = await this.nodeSuperBlock(blockId);
       PluginBackLinkInDoc.insertAfter(superBlock, blockEle);
     });
     //console.log(detail.wysiwyg.element);
     //this.eventBus.on("loaded-protyle", this.addEleThis);
     //this.eventBus.on("loaded-protyle-dynamic", this.addEleThis);
+    this.isAdding = false;
   }
   /**
    * 在targetElement之后插入 新节点newElement
