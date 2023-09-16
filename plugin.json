@@ -2,7 +2,7 @@
   "name": "plugin-backlink-in-doc",
   "author": "dualwind",
   "url": "https://github.com/etchnight/siyuanPlugin-backLinkInDoc",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "minAppVersion": "2.9.0",
   "backends": ["all"],
   "frontends": ["all"],
