@@ -1,26 +1,24 @@
 {
-  "name": "plugin-backlink-in-doc",
+  "name": "siyuan-plugin-custom-interface",
   "author": "dualwind",
   "url": "https://github.com/etchnight/siyuanPlugin-backLinkInDoc",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "minAppVersion": "2.9.0",
   "backends": ["all"],
   "frontends": ["all"],
   "displayName": {
-    "en_US": "Display backlink content in the document",
-    "zh_CN": "文档中显示反链内容"
+    "en_US": "custom interface",
+    "zh_CN": "自定义界面"
   },
   "description": {
-    "en_US": "Display backlink content in the document",
-    "zh_CN": "文档中显示反链内容"
+    "en_US": "A series of custom interface features",
+    "zh_CN": "一系列自定义界面功能"
   },
   "readme": {
     "en_US": "README_en_US.md",
     "zh_CN": "README.md"
   },
   "funding": {
-    "custom": [
-      "https://afdian.net/a/dualwind"
-    ]
+    "custom": ["https://afdian.net/a/dualwind"]
   }
 }
