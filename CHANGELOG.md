@@ -1,35 +1,15 @@
-## 0.2.0
-
-* [Add plugin event bus `open-siyuan-url-plugin` and `open-siyuan-url-block`](https://github.com/siyuan-note/siyuan/pull/8927)
+## [0.2.1](https://github.com/etchnight/siyuan-plugin-custom-interface/compare/v0.2.0...v0.2.1) (2024-02-04)
 
 
-## 0.1.12 2023-08-01
+### Code Refactoring
 
-* Upgrade siyuan to 0.7.9
-
-## 0.1.11
-
-* [Add `input-search` event bus to plugins](https://github.com/siyuan-note/siyuan/issues/8725)
+* 更改项目名为siyuan-plugin-custom-interface ([f3e97e8](https://github.com/etchnight/siyuan-plugin-custom-interface/commit/f3e97e80faa25b71873174fd472a15a740acb4ca))
 
 
-## 0.1.10
+### BREAKING CHANGES
 
-* [Add `bind this` example for eventBus in plugins](https://github.com/siyuan-note/siyuan/issues/8668)
-* [Add `open-menu-breadcrumbmore` event bus to plugins](https://github.com/siyuan-note/siyuan/issues/8666)
+* project name
 
-## 0.1.9
 
-* [Add `open-menu-xxx` event bus for plugins ](https://github.com/siyuan-note/siyuan/issues/8617)
 
-## 0.1.8
 
-* [Add protyleSlash to the plugin](https://github.com/siyuan-note/siyuan/issues/8599)
-* [Add plugin API protyle](https://github.com/siyuan-note/siyuan/issues/8445)
-
-## 0.1.7
-
-* [Support build js and json](https://github.com/siyuan-note/plugin-sample/pull/8)
-
-## 0.1.6
-
-* add `fetchPost` example
