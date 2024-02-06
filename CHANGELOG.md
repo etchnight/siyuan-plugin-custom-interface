@@ -1,3 +1,6 @@
+## [0.3.1](https://github.com/etchnight/siyuan-plugin-custom-interface/compare/v0.3.0...v0.3.1) (2024-02-06)
+
+
 # [0.3.0](https://github.com/etchnight/siyuan-plugin-custom-interface/compare/v0.2.0...v0.3.0) (2024-02-06)
 
 
