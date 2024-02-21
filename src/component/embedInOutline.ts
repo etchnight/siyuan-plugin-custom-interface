@@ -12,12 +12,14 @@ import {
   BlockTree,
   Block,
   ETypeAbbrMap,
+  BlockId,
 } from "../../subMod/siyuanPlugin-common/types/siyuan-api.d";
 
 export class embedInOutline {
   private outline: {
     update: (data: { data: DocOutline[] }) => void;
     tree: { data: DocOutline[] };
+    blockId: BlockId;
   };
   public disConnect = this.disConnect2.bind(this);
   public isWatching: boolean;
@@ -62,19 +64,16 @@ export class embedInOutline {
       }
       this.disConnect();
       //1. 查询所有嵌入块
-      let outlineData = this.outline.tree.data[0];
-      const block = await queryBlockById(outlineData.id);
+      let outlineData = this.outline.tree.data;
+      //const block = await queryBlockById(outlineData.id);
       const embedBlocks = (await requestQuerySQL(
-        `SELECT * FROM blocks WHERE blocks.type='query_embed' AND blocks.root_id='${block.root_id}'      `
+        `SELECT * FROM blocks WHERE blocks.type='query_embed' AND blocks.root_id='${this.outline.blockId}'      `
       )) as Block[];
       for (let embedBlock of embedBlocks) {
         //2. 判断嵌入块指向块是否是标题
         const embedRefBlock = await queryRefBlockById(embedBlock.id);
-        if (embedRefBlock.type !== "h") {
-          continue;
-        }
-        //todo 处理方法
-        if (!outlineData || outlineData.blocks.length == 0) {
+        //console.log("embedRefBlock", embedRefBlock);
+        if (embedRefBlock.type !== "h" && embedRefBlock.type !== "d") {
           continue;
         }
         //3. 查询嵌入块的最近标题祖先
@@ -82,15 +81,16 @@ export class embedInOutline {
         const parent = ancestors.find((e) => {
           return e.type === "h";
         });
-        let parentInTree: BlockTree = findInTree(
+        let parentInTree: BlockTree | DocOutline = findInTree(
           outlineData,
           ["blocks", "children"],
           (e) => {
             return parent.id === e.id;
           }
         );
+        //console.log("parentInTree", parentInTree);
         // 4. 查询嵌入块指向块的子标题
-        const embedOutline = (await getDocOutline(embedRefBlock.id))[0];
+        const embedOutline = await getDocOutline(embedRefBlock.id);
         //console.log("embedOutline", embedOutline);
         let selfInTree: BlockTree | DocOutline = findInTree(
           embedOutline,
@@ -99,21 +99,42 @@ export class embedInOutline {
             return embedRefBlock.id === e.id;
           }
         );
-        if (!parentInTree.children) {
-          parentInTree.children = [];
+        if (embedRefBlock.type === "d") {
+          let selfInTree2 = this.docOutline2BlockTree(embedRefBlock);
+          selfInTree2.type = ETypeAbbrMap.d;
+          selfInTree2.children = await Promise.all(
+            embedOutline.map(async (e) => {
+              const block = await queryBlockById(e.id);
+              return this.docOutline2BlockTree(block, e);
+            })
+          );
+          selfInTree = selfInTree2;
         }
+        //console.log("selfInTree", selfInTree);
         const selfInTreeTrans = (
           "blocks" in selfInTree
-            ? this.docOutline2BlockTree(selfInTree, embedRefBlock)
+            ? this.docOutline2BlockTree(embedRefBlock, selfInTree)
             : selfInTree
         ) as BlockTree;
         changeDepth(selfInTreeTrans, parentInTree.depth);
-        //console.log("parentInTree", parentInTree);
-        //console.log("selfInTree", selfInTree);
-        parentInTree.children.push(selfInTreeTrans);
+        if (parentInTree.type === "outline") {
+          let parentInTree2 = parentInTree as DocOutline;
+          if (!parentInTree2.blocks) {
+            parentInTree2.blocks = [];
+          }
+          parentInTree.blocks.push(selfInTreeTrans);
+          parentInTree = parentInTree2;
+        } else {
+          let parentInTree2 = parentInTree as BlockTree;
+          if (!parentInTree2.children) {
+            parentInTree2.children = [];
+          }
+          parentInTree2.children.push(selfInTreeTrans);
+          parentInTree = parentInTree2;
+        }
       }
-      //console.log("outlineData", outlineData);
-      this.outline.update({ data: [outlineData] });
+      console.log("outlineData", outlineData);
+      this.outline.update({ data: outlineData });
       this.init();
     }
   );
@@ -128,8 +149,8 @@ export class embedInOutline {
    * @returns 仅模拟，有些属性忽略了
    */
   private docOutline2BlockTree(
-    docOutline: DocOutline,
-    embedRefBlock: Block
+    embedRefBlock: Block,
+    docOutline?: DocOutline
   ): BlockTree {
     let result: BlockTree = {
       ...embedRefBlock,
@@ -140,8 +161,8 @@ export class embedInOutline {
       refs: null,
       defID: null,
       defPath: "",
-      children: docOutline.blocks,
-      depth: docOutline.depth,
+      children: docOutline?.blocks,
+      depth: docOutline?.depth,
       count: 0,
       riffCardID: "",
       riffCard: null,
