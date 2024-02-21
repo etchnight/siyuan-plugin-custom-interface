@@ -1,3 +1,12 @@
+## [0.3.2](https://github.com/etchnight/siyuan-plugin-custom-interface/compare/v0.3.1...v0.3.2) (2024-02-21)
+
+
+### Bug Fixes
+
+* **将嵌入块放入大纲:** 修复含有多个1级标题时更新错误的问题 ([6b158f0](https://github.com/etchnight/siyuan-plugin-custom-interface/commit/6b158f0db75d1185ebb2f8a46258f0121e07bbb7))
+
+
+
 ## [0.3.1](https://github.com/etchnight/siyuan-plugin-custom-interface/compare/v0.3.0...v0.3.1) (2024-02-06)
 
 
