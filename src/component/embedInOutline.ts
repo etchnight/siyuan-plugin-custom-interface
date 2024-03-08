@@ -18,10 +18,9 @@ import {
 export class embedInOutline {
   private outline: {
     update: (data: { data: DocOutline[] }) => void;
-    tree: { data: DocOutline[] };
+    tree: { data?: DocOutline[] };
     blockId: BlockId;
   };
-  public disConnect = this.disConnect2.bind(this);
   public isWatching: boolean;
 
   public init = () => {
@@ -37,13 +36,13 @@ export class embedInOutline {
     });
     this.isWatching = true;
   };
-  private disConnect2() {
+  private disConnect = () => {
     if (!this.isWatching) {
       return;
     }
     this.outlineObserver.disconnect();
     this.isWatching = false;
-  }
+  };
   /**
    * 更新data方法
    *    1. 查询所有嵌入块
@@ -59,7 +58,11 @@ export class embedInOutline {
           continue;
         }
       }
-      if (!this.outline.tree || this.outline.tree.data.length === 0) {
+      if (
+        !this.outline.tree ||
+        !this.outline.tree.data ||
+        this.outline.tree.data.length === 0
+      ) {
         return;
       }
       this.disConnect();

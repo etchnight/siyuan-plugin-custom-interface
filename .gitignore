@@ -8,5 +8,5 @@ dev
 dist
 build
 tmp
-
+temp
 src-backup
