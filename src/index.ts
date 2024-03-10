@@ -1,12 +1,12 @@
 import { Plugin, Setting } from "siyuan";
-import { backLinkInDoc } from "./component/backlinkInDoc";
+import { BackLinkInDoc } from "./component/backlinkInDoc";
 import { switchEle } from "./component/setting";
-import { embedInOutline } from "./component/embedInOutline";
+import { EmbedInOutline } from "./component/embedInOutline";
 const STORAGE_NAME = "menuConfig";
 
 export default class PLuginCustomInterface extends Plugin {
-  private blinkInDoc: backLinkInDoc;
-  private embedInOutl = new embedInOutline();
+  private blinkInDoc: BackLinkInDoc;
+  private embedInOutl = new EmbedInOutline();
 
   private featureList: {
     name: string;
@@ -77,7 +77,7 @@ export default class PLuginCustomInterface extends Plugin {
    */
   private switchBlinkInDoc(close?: boolean) {
     if (this.data[STORAGE_NAME].embedInOutline && !close) {
-      this.blinkInDoc = new backLinkInDoc();
+      this.blinkInDoc = new BackLinkInDoc();
       this.eventBus.on("loaded-protyle-static", this.blinkInDoc.backLinkInDoc);
       this.eventBus.on("loaded-protyle-dynamic", this.blinkInDoc.backLinkInDoc);
       this.eventBus.on("click-blockicon", this.blinkInDoc.blockIconEvent);

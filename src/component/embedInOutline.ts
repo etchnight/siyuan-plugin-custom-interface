@@ -14,21 +14,23 @@ import {
   ETypeAbbrMap,
   BlockId,
 } from "../../subMod/siyuanPlugin-common/types/siyuan-api.d";
+import { TreeTools } from "../../subMod/js-utility-function/src/tree";
+import { Dev } from "../../subMod/js-utility-function/src/other";
 
-export class embedInOutline {
+export class EmbedInOutline {
   private outline: {
     update: (data: { data: DocOutline[] }) => void;
     tree: { data?: DocOutline[] };
     blockId: BlockId;
   };
+  private dev = new Dev(true);
   public isWatching: boolean;
-
+  private lastTree: BlockTree;
   public init = () => {
     if (this.isWatching) {
       return;
     }
     const outlineEle = document.querySelector(".sy__outline");
-    this.getTree();
     this.outlineObserver.observe(outlineEle, {
       childList: true,
       attributes: false,
@@ -36,7 +38,7 @@ export class embedInOutline {
     });
     this.isWatching = true;
   };
-  private disConnect = () => {
+  public disConnect = () => {
     if (!this.isWatching) {
       return;
     }
@@ -44,121 +46,17 @@ export class embedInOutline {
     this.isWatching = false;
   };
   /**
-   * 更新data方法
-   *    1. 查询所有嵌入块
-   *    2. 判断嵌入块指向块是否是标题
-   *    3. 查询嵌入块的最近标题祖先
-   *    4. 查询嵌入块指向块的子标题
-   *    5. 嵌入块指向块的标题及子标题插入最近标题祖先子级中
-   */
-  private outlineObserver = new MutationObserver(
-    async (mutationsList, observer) => {
-      for (let mutation of mutationsList) {
-        if (mutation.type === "attributes") {
-          continue;
-        }
-      }
-      if (
-        !this.outline.tree ||
-        !this.outline.tree.data ||
-        this.outline.tree.data.length === 0
-      ) {
-        return;
-      }
-      this.disConnect();
-      //1. 查询所有嵌入块
-      let outlineData = this.outline.tree.data;
-      //const block = await queryBlockById(outlineData.id);
-      const embedBlocks = (await requestQuerySQL(
-        `SELECT * FROM blocks WHERE blocks.type='query_embed' AND blocks.root_id='${this.outline.blockId}'      `
-      )) as Block[];
-      for (let embedBlock of embedBlocks) {
-        //2. 判断嵌入块指向块是否是标题
-        const embedRefBlock = await queryRefBlockById(embedBlock.id);
-        //console.log("embedRefBlock", embedRefBlock);
-        if (embedRefBlock.type !== "h" && embedRefBlock.type !== "d") {
-          continue;
-        }
-        //3. 查询嵌入块的最近标题祖先
-        const ancestors = await queryAncestorBlocks(embedBlock.id);
-        const parent = ancestors.find((e) => {
-          return e.type === "h";
-        });
-        let parentInTree: BlockTree | DocOutline = findInTree(
-          outlineData,
-          ["blocks", "children"],
-          (e) => {
-            return parent.id === e.id;
-          }
-        );
-        //console.log("parentInTree", parentInTree);
-        // 4. 查询嵌入块指向块的子标题
-        const embedOutline = await getDocOutline(embedRefBlock.id);
-        //console.log("embedOutline", embedOutline);
-        let selfInTree: BlockTree | DocOutline = findInTree(
-          embedOutline,
-          ["blocks", "children"],
-          (e) => {
-            return embedRefBlock.id === e.id;
-          }
-        );
-        if (embedRefBlock.type === "d") {
-          let selfInTree2 = this.docOutline2BlockTree(embedRefBlock);
-          selfInTree2.type = ETypeAbbrMap.d;
-          selfInTree2.children = await Promise.all(
-            embedOutline.map(async (e) => {
-              const block = await queryBlockById(e.id);
-              return this.docOutline2BlockTree(block, e);
-            })
-          );
-          selfInTree = selfInTree2;
-        }
-        //console.log("selfInTree", selfInTree);
-        const selfInTreeTrans = (
-          "blocks" in selfInTree
-            ? this.docOutline2BlockTree(embedRefBlock, selfInTree)
-            : selfInTree
-        ) as BlockTree;
-        changeDepth(selfInTreeTrans, parentInTree.depth);
-        if (parentInTree.type === "outline") {
-          let parentInTree2 = parentInTree as DocOutline;
-          if (!parentInTree2.blocks) {
-            parentInTree2.blocks = [];
-          }
-          parentInTree.blocks.push(selfInTreeTrans);
-          parentInTree = parentInTree2;
-        } else {
-          let parentInTree2 = parentInTree as BlockTree;
-          if (!parentInTree2.children) {
-            parentInTree2.children = [];
-          }
-          parentInTree2.children.push(selfInTreeTrans);
-          parentInTree = parentInTree2;
-        }
-      }
-      console.log("outlineData", outlineData);
-      this.outline.update({ data: outlineData });
-      this.init();
-    }
-  );
-  private getTree = () => {
-    this.outline = window.siyuan.layout.rightDock?.data?.outline;
-    if (!this.outline) {
-      this.outline = window.siyuan.layout.leftDock?.data?.outline;
-    }
-  };
-  /**
    *
    * @returns 仅模拟，有些属性忽略了
    */
-  private docOutline2BlockTree(
-    embedRefBlock: Block,
+  private docOutline2BlockTree = (
+    block: Block,
     docOutline?: DocOutline
-  ): BlockTree {
+  ): BlockTree => {
     let result: BlockTree = {
-      ...embedRefBlock,
-      rootID: embedRefBlock.root_id,
-      parentID: embedRefBlock.root_id,
+      ...block,
+      rootID: block.root_id,
+      parentID: block.root_id,
       folded: false,
       refText: "",
       refs: null,
@@ -169,13 +67,157 @@ export class embedInOutline {
       count: 0,
       riffCardID: "",
       riffCard: null,
-      hPath: embedRefBlock.hpath,
-      subType: embedRefBlock.subtype,
-      type: ETypeAbbrMap.h,
+      hPath: block.hpath,
+      subType: block.subtype,
+      type: ETypeAbbrMap[block.type],
     };
-
     return result;
-  }
+  };
+  private docOutlineList2BlockTrees = async (docOutline: DocOutline[]) => {
+    let result: BlockTree[] = await Promise.all(
+      docOutline.map(async (e) => {
+        const block = await queryBlockById(e.id);
+        return this.docOutline2BlockTree(block, e);
+      })
+    );
+    return result;
+  };
+  private blockTree2docOutline = (blockTree: BlockTree): DocOutline => {
+    return {
+      id: blockTree.id,
+      box: blockTree.box,
+      name: blockTree.name || blockTree.content,
+      hPath: blockTree.hPath,
+      type: "outline",
+      nodeType: blockTree.type,
+      subType: blockTree.subType,
+      blocks: blockTree.children,
+      depth: blockTree.depth,
+      count: blockTree.count,
+      updated: blockTree.updated,
+      created: blockTree.created,
+    };
+  };
+
+  /**
+   * 更新data方法
+   *    1. 查询所有嵌入块
+   *    2. 判断嵌入块指向块是否是标题
+   *    3. 查询嵌入块的最近标题祖先
+   *    4. 查询嵌入块指向块的子标题
+   *    5. 嵌入块指向块的标题及子标题插入最近标题祖先子级中
+   */
+  private changeOutline = async () => {
+    this.getTree();
+    if (
+      !this.outline.tree ||
+      !this.outline.tree.data ||
+      this.outline.tree.data.length === 0
+    ) {
+      return;
+    }
+    this.dev.log("原始outline", this.outline.tree.data);
+    let tree: BlockTree[] = await this.docOutlineList2BlockTrees(
+      this.outline.tree.data
+    );
+    const outlineData = new TreeTools(
+      { pid: "outlinePid" },
+      {
+        tree: tree,
+      }
+    );
+    //this.disConnect();
+    //1. 查询所有嵌入块
+    //let outlineData = this.outline.tree.data;
+    //console.log(outlineData)
+    //const block = await queryBlockById(outlineData.id);
+    const embedBlocks = (await requestQuerySQL(
+      `SELECT * FROM blocks WHERE blocks.type='query_embed' AND blocks.root_id='${this.outline.blockId}'`
+    )) as Block[];
+    this.dev.log("embedBlocks", embedBlocks);
+    const forEachEmbedBlock = async (embedBlock: Block) => {
+      //2. 判断嵌入块指向块是否是标题
+      const embedRefBlocks = await queryRefBlockById(embedBlock.id);
+      this.dev.log("embedRefBlock", embedRefBlocks);
+      await this.dev.devMap(embedRefBlocks, async (embedRefBlock) => {
+        if (embedRefBlock.type !== "h" && embedRefBlock.type !== "d") {
+          return;
+        }
+        //3. 查询嵌入块的最近标题祖先
+        const ancestors = await queryAncestorBlocks(embedBlock.id);
+        const parent = ancestors.find((e) => {
+          return e.type === "h";
+        });
+        let parentInTree = outlineData.findNode((e) => {
+          return parent.id === e.id;
+        });
+        /*       let parentInTree: BlockTree | DocOutline = findInTree(
+      outlineData,
+      ["blocks", "children"],
+      (e) => {
+        return parent.id === e.id;
+      }
+    ); */
+        this.dev.log("parentInTree", parentInTree);
+        // 4. 查询嵌入块指向块的子标题
+        const embedOutline = await getDocOutline(embedRefBlock.id);
+        this.dev.log("embedOutline", embedOutline);
+        const embedOutlineChild = await this.docOutlineList2BlockTrees(
+          embedOutline
+        );
+        let embedOutlineTree: BlockTree[];
+        //文档在outline中是不存在的
+        if (embedRefBlock.type == "d") {
+          embedOutlineTree = [this.docOutline2BlockTree(embedRefBlock)];
+          embedOutlineTree[0].children = embedOutlineChild;
+        } else {
+          embedOutlineTree = embedOutlineChild;
+        }
+        const embedOutlineData = new TreeTools(
+          { pid: "outlinePid" },
+          {
+            tree: embedOutlineTree,
+          }
+        );
+        let selfInTree: BlockTree = embedOutlineData.findNode((e) => {
+          return embedRefBlock.id === e.id;
+        });
+        this.dev.log("selfInTree", selfInTree);
+        changeDepth(selfInTree, parentInTree.depth);
+        if (!parentInTree.children) {
+          parentInTree.children = [];
+        }
+        parentInTree.children.push(selfInTree);
+      });
+    };
+    await this.dev.devMap(embedBlocks, forEachEmbedBlock);
+    //await Promise.all(embedBlocks.map(forEachEmbedBlock));
+    const outline = outlineData.tree.map((e) => {
+      return this.blockTree2docOutline(e);
+    });
+    this.dev.log("outlineData", outline);
+    this.outline.update({ data: outline });
+  };
+  private outlineObserver = new MutationObserver(
+    async (mutationsList, observer) => {
+      /*       
+      for (let mutation of mutationsList) {
+        if (mutation.type === "attributes") {
+          continue;
+        }
+      } */
+      this.disConnect();
+      await this.changeOutline();
+      this.init();
+    }
+  );
+
+  private getTree = () => {
+    this.outline = window.siyuan.layout.rightDock?.data?.outline;
+    if (!this.outline) {
+      this.outline = window.siyuan.layout.leftDock?.data?.outline;
+    }
+  };
 }
 function changeDepth(tree: BlockTree, depth: number) {
   if (!tree.children) {
@@ -184,37 +226,5 @@ function changeDepth(tree: BlockTree, depth: number) {
   tree.depth = depth + 1;
   for (let child of tree.children) {
     changeDepth(child, depth + 1);
-  }
-}
-/**
- *
- * @param tree
- * @param key 作为children字段的key
- * @returns
- */
-function findInTree(tree: any, keys: string[], callback: (e: any) => boolean) {
-  if (Array.isArray(tree)) {
-    for (let item of tree) {
-      let result = findInTree(item, keys, callback);
-      if (result) {
-        return result;
-      }
-    }
-  } else {
-    if (callback(tree)) {
-      return tree;
-    }
-  }
-
-  for (let key of keys) {
-    if (!tree[key] || !Array.isArray(tree[key])) {
-      continue;
-    }
-    for (let child of tree[key]) {
-      let result = findInTree(child, keys, callback);
-      if (result) {
-        return result;
-      }
-    }
   }
 }

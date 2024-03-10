@@ -2,7 +2,7 @@
 import { Window } from "../../../siyuanPlugin-common/siyuan-api";
 
 const customEleAttrName = "PluginBackLinkInDoc-target-id";
-export class backLinkInDoc {
+export class BackLinkInDoc {
   private isAdding = false; //是否在进行添加
   private isCustomBlockMenu: boolean; //menu是否由虚拟块触发，在eventBus和MutationObserver之间传递状态
 

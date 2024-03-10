@@ -1,3 +1,6 @@
 [submodule "subMod/siyuanPlugin-common"]
 	path = subMod/siyuanPlugin-common
 	url = https://github.com/etchnight/siyuanPlugin-common.git
+[submodule "subMod/js-utility-function"]
+	path = subMod/js-utility-function
+	url = https://github.com/etchnight/js-utility-function.git
