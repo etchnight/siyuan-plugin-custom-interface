@@ -15,7 +15,7 @@ import {
   BlockId,
 } from "../../subMod/siyuanPlugin-common/types/siyuan-api.d";
 import { TreeTools } from "../../subMod/js-utility-function/src/tree";
-import { Dev } from "../../subMod/js-utility-function/src/other";
+import { Dev, sleep } from "../../subMod/js-utility-function/src/other";
 
 export class EmbedInOutline {
   private outline: {
@@ -23,9 +23,9 @@ export class EmbedInOutline {
     tree: { data?: DocOutline[] };
     blockId: BlockId;
   };
-  private dev = new Dev(true);
+  private dev = new Dev(false);
   public isWatching: boolean;
-  private lastTree: BlockTree;
+  //private lastTree: BlockTree;
   public init = () => {
     if (this.isWatching) {
       return;
@@ -196,7 +196,11 @@ export class EmbedInOutline {
       return this.blockTree2docOutline(e);
     });
     this.dev.log("outlineData", outline);
+    this.disConnect();
+
     this.outline.update({ data: outline });
+    await sleep(200);
+    this.init();
   };
   private outlineObserver = new MutationObserver(
     async (mutationsList, observer) => {
@@ -206,9 +210,9 @@ export class EmbedInOutline {
           continue;
         }
       } */
-      this.disConnect();
+      this.dev.log("mutationsList", mutationsList);
+      //setInterval(() => this.changeOutline(), 100);
       await this.changeOutline();
-      this.init();
     }
   );
 
