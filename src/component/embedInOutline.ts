@@ -190,15 +190,19 @@ export class EmbedInOutline {
           findParentInTree(),
           findSelfInTree(),
         ]);
-        changeDepth(selfInTree, parentInTree.depth);
-        if (!parentInTree.children) {
-          parentInTree.children = [];
+        if (parentInTree) {
+          changeDepth(selfInTree, parentInTree.depth);
+          if (!parentInTree.children) {
+            parentInTree.children = [];
+          }
+          parentInTree.children.push(selfInTree);
+        } else {
+          outlineData.tree.unshift(selfInTree);
         }
-        parentInTree.children.push(selfInTree);
       });
     };
     await this.dev.devMap(embedBlocks, forEachEmbedBlock);
-    //await Promise.all(embedBlocks.map(forEachEmbedBlock));
+    //*重新转换为大纲
     const outline = outlineData.tree.map((e) => {
       return this.blockTree2docOutline(e);
     });
