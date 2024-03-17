@@ -144,20 +144,18 @@ export class EmbedInOutline {
           return;
         }
         //3. 查询嵌入块的最近标题祖先
+        /*大多数情况下 嵌入块的最近标题祖先 只用一次即可以查询到，使用递归效率太慢
         const ancestors = await queryAncestorBlocks(embedBlock.id);
         const parent = ancestors.find((e) => {
           return e.type === "h";
-        });
+        }); */
+        let parent = await queryBlockById(embedBlock.parent_id);
+        while (parent.type !== "h" && parent.parent_id) {
+          parent = await queryBlockById(parent.parent_id);
+        }
         let parentInTree = outlineData.findNode((e) => {
           return parent.id === e.id;
         });
-        /*       let parentInTree: BlockTree | DocOutline = findInTree(
-      outlineData,
-      ["blocks", "children"],
-      (e) => {
-        return parent.id === e.id;
-      }
-    ); */
         this.dev.log("parentInTree", parentInTree);
         // 4. 查询嵌入块指向块的子标题
         const embedOutline = await getDocOutline(embedRefBlock.id);
