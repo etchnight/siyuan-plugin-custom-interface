@@ -190,8 +190,8 @@ export class EmbedInOutline {
           findParentInTree(),
           findSelfInTree(),
         ]);
+        changeDepth(selfInTree, parentInTree?.depth);
         if (parentInTree) {
-          changeDepth(selfInTree, parentInTree.depth);
           if (!parentInTree.children) {
             parentInTree.children = [];
           }
@@ -234,11 +234,11 @@ export class EmbedInOutline {
     }
   };
 }
-function changeDepth(tree: BlockTree, depth: number) {
+function changeDepth(tree: BlockTree, depth: number = -1) {
+  tree.depth = depth + 1;
   if (!tree.children) {
     return;
   }
-  tree.depth = depth + 1;
   for (let child of tree.children) {
     changeDepth(child, depth + 1);
   }
