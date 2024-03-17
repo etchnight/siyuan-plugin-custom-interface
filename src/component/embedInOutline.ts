@@ -3,7 +3,6 @@ import {
   getDocOutline,
 } from "../../subMod/siyuanPlugin-common/siyuan-api/outline";
 import {
-  queryAncestorBlocks,
   queryBlockById,
   queryRefBlockById,
   requestQuerySQL,
@@ -144,43 +143,53 @@ export class EmbedInOutline {
           return;
         }
         //3. 查询嵌入块的最近标题祖先
-        /*大多数情况下 嵌入块的最近标题祖先 只用一次即可以查询到，使用递归效率太慢
-        const ancestors = await queryAncestorBlocks(embedBlock.id);
-        const parent = ancestors.find((e) => {
-          return e.type === "h";
-        }); */
-        let parent = await queryBlockById(embedBlock.parent_id);
-        while (parent.type !== "h" && parent.parent_id) {
-          parent = await queryBlockById(parent.parent_id);
-        }
-        let parentInTree = outlineData.findNode((e) => {
-          return parent.id === e.id;
-        });
-        this.dev.log("parentInTree", parentInTree);
-        // 4. 查询嵌入块指向块的子标题
-        const embedOutline = await getDocOutline(embedRefBlock.id);
-        this.dev.log("embedOutline", embedOutline);
-        const embedOutlineChild = await this.docOutlineList2BlockTrees(
-          embedOutline
-        );
-        let embedOutlineTree: BlockTree[];
-        //文档在outline中是不存在的
-        if (embedRefBlock.type == "d") {
-          embedOutlineTree = [this.docOutline2BlockTree(embedRefBlock)];
-          embedOutlineTree[0].children = embedOutlineChild;
-        } else {
-          embedOutlineTree = embedOutlineChild;
-        }
-        const embedOutlineData = new TreeTools(
-          { pid: "outlinePid" },
-          {
-            tree: embedOutlineTree,
+        const findParentInTree = async () => {
+          /*大多数情况下 嵌入块的最近标题祖先 只用一次即可以查询到，使用递归效率太慢
+          const ancestors = await queryAncestorBlocks(embedBlock.id);
+          const parent = ancestors.find((e) => {
+            return e.type === "h";
+          }); */
+          let parent = await queryBlockById(embedBlock.parent_id);
+          while (parent.type !== "h" && parent.parent_id) {
+            parent = await queryBlockById(parent.parent_id);
           }
-        );
-        let selfInTree: BlockTree = embedOutlineData.findNode((e) => {
-          return embedRefBlock.id === e.id;
-        });
-        this.dev.log("selfInTree", selfInTree);
+          let parentInTree = outlineData.findNode((e) => {
+            return parent.id === e.id;
+          });
+          this.dev.log("parentInTree", parentInTree);
+          return parentInTree;
+        };
+        // 4. 查询嵌入块指向块的子标题
+        const findSelfInTree = async () => {
+          const embedOutline = await getDocOutline(embedRefBlock.id);
+          this.dev.log("embedOutline", embedOutline);
+          const embedOutlineChild = await this.docOutlineList2BlockTrees(
+            embedOutline
+          );
+          let embedOutlineTree: BlockTree[];
+          //文档在outline中是不存在的
+          if (embedRefBlock.type == "d") {
+            embedOutlineTree = [this.docOutline2BlockTree(embedRefBlock)];
+            embedOutlineTree[0].children = embedOutlineChild;
+          } else {
+            embedOutlineTree = embedOutlineChild;
+          }
+          const embedOutlineData = new TreeTools(
+            { pid: "outlinePid" },
+            {
+              tree: embedOutlineTree,
+            }
+          );
+          let selfInTree: BlockTree = embedOutlineData.findNode((e) => {
+            return embedRefBlock.id === e.id;
+          });
+          this.dev.log("selfInTree", selfInTree);
+          return selfInTree;
+        };
+        const [parentInTree, selfInTree] = await Promise.all([
+          findParentInTree(),
+          findSelfInTree(),
+        ]);
         changeDepth(selfInTree, parentInTree.depth);
         if (!parentInTree.children) {
           parentInTree.children = [];
