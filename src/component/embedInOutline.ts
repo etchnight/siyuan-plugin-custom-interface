@@ -25,6 +25,7 @@ export class EmbedInOutline {
   private dev = new Dev(false);
   public isWatching: boolean;
   //private lastTree: BlockTree;
+  private changeTime = new Date();
   public init = () => {
     if (this.isWatching) {
       return;
@@ -210,7 +211,7 @@ export class EmbedInOutline {
     this.disConnect();
 
     this.outline.update({ data: outline });
-    await sleep(200);
+    await sleep(100);
     this.init();
   };
   private outlineObserver = new MutationObserver(
@@ -222,8 +223,15 @@ export class EmbedInOutline {
         }
       } */
       this.dev.log("mutationsList", mutationsList);
-      //setInterval(() => this.changeOutline(), 100);
-      await this.changeOutline();
+      //每次变化都会更新时间，xx ms 后，如果changeTime仍等于date，说明是最后一次变动
+      //如果date.valueOf() - this.changeTime.valueOf()为负，说明this.changeTime已更新
+      const date = new Date();
+      this.changeTime = new Date();
+      setTimeout(() => {
+        if (date.valueOf() === this.changeTime.valueOf()) {
+          this.changeOutline();
+        }
+      }, 1000);
     }
   );
 
