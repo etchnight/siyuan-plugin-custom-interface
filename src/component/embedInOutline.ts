@@ -4,7 +4,7 @@ import {
 } from "../../subMod/siyuanPlugin-common/siyuan-api/outline";
 import {
   queryBlockById,
-  queryRefBlockById,
+  queryRefBlockByBlock,
   requestQuerySQL,
 } from "../../subMod/siyuanPlugin-common/siyuan-api/query";
 import {
@@ -137,7 +137,8 @@ export class EmbedInOutline {
     this.dev.log("embedBlocks", embedBlocks);
     const forEachEmbedBlock = async (embedBlock: Block) => {
       //2. 判断嵌入块指向块是否是标题
-      const embedRefBlocks = await queryRefBlockById(embedBlock.id);
+      //const embedRefBlocks = await queryRefBlockById(embedBlock.id);
+      const embedRefBlocks = await queryRefBlockByBlock(embedBlock);
       this.dev.log("embedRefBlock", embedRefBlocks);
       await this.dev.devMap(embedRefBlocks, async (embedRefBlock) => {
         if (embedRefBlock.type !== "h" && embedRefBlock.type !== "d") {
