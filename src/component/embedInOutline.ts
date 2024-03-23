@@ -117,14 +117,8 @@ export class EmbedInOutline {
       return;
     }
     this.dev.log("原始outline", this.outline.tree.data);
-    let tree: BlockTree[] = await this.docOutlineList2BlockTrees(
+    const outlineData: BlockTree[] = await this.docOutlineList2BlockTrees(
       this.outline.tree.data
-    );
-    const outlineData = new TreeTools(
-      { pid: "outlinePid" },
-      {
-        tree: tree,
-      }
     );
     //this.disConnect();
     //1. 查询所有嵌入块
@@ -155,7 +149,7 @@ export class EmbedInOutline {
           while (parent.type !== "h" && parent.parent_id) {
             parent = await queryBlockById(parent.parent_id);
           }
-          let parentInTree = outlineData.findNode((e) => {
+          const parentInTree = TreeTools.findNodeStatic(outlineData, (e) => {
             return parent.id === e.id;
           });
           this.dev.log("parentInTree", parentInTree);
@@ -176,15 +170,16 @@ export class EmbedInOutline {
           } else {
             embedOutlineTree = embedOutlineChild;
           }
-          const embedOutlineData = new TreeTools(
-            { pid: "outlinePid" },
-            {
-              tree: embedOutlineTree,
+          let selfInTree: BlockTree = TreeTools.findNodeStatic(
+            embedOutlineTree,
+            (e) => {
+              return embedRefBlock.id === e.id;
             }
           );
-          let selfInTree: BlockTree = embedOutlineData.findNode((e) => {
-            return embedRefBlock.id === e.id;
+          const selfInTree2 = TreeTools.forEachStatic([selfInTree], (e) => {
+            e.id = embedBlock.id;
           });
+          selfInTree = selfInTree2[0];
           this.dev.log("selfInTree", selfInTree);
           return selfInTree;
         };
@@ -199,13 +194,13 @@ export class EmbedInOutline {
           }
           parentInTree.children.push(selfInTree);
         } else {
-          outlineData.tree.unshift(selfInTree);
+          outlineData.unshift(selfInTree);
         }
       });
     };
     await this.dev.devMap(embedBlocks, forEachEmbedBlock);
     //*重新转换为大纲
-    const outline = outlineData.tree.map((e) => {
+    const outline = outlineData.map((e) => {
       return this.blockTree2docOutline(e);
     });
     this.dev.log("outlineData", outline);
